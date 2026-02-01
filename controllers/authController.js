@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const json = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const User = require('../models/users');
@@ -63,8 +63,8 @@ const login = async (req, res) => {
       throw new Error();
     }
 
-    const token = json.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: '1m',
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
     });
 
     // Registration logic here
@@ -74,4 +74,36 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { createUser, login };
+const getUser = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const { name, email, role } = await User.findById(id);
+
+    res.status(200).json({ name, email, role });
+  } catch (error) {
+    res.status(404).json({ Status: false, Message: `User doesn't exist` });
+  }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      throw errors;
+    }
+
+    const { id } = req.user;
+    const { name } = req.body;
+
+    await User.findByIdAndUpdate(id, { name });
+
+    res
+      .status(200)
+      .json({ Status: true, Message: 'User updated successfully' });
+  } catch (error) {
+    res.status(400).json({ Status: false, Message: error });
+  }
+};
+
+module.exports = { createUser, login, getUser, updateUser };

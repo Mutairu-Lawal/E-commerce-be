@@ -1,11 +1,20 @@
 const express = require('express');
 const { body } = require('express-validator');
 
-const { createUser, login } = require('../controllers/authController');
+const {
+  createUser,
+  login,
+  getUser,
+  updateUser,
+} = require('../controllers/authController');
+const checkAuth = require('../middlewares/auth');
 
-route = express.Router(); // Sample authentication route
+router = express.Router(); // Sample authentication route
 
-route.post(
+// protected route middleware
+router.use('/me', checkAuth);
+
+router.post(
   '/register',
   body('name').trim().notEmpty().isLength({ min: 3 }).escape().toLowerCase(),
   body('email').trim().notEmpty().isEmail().escape().toLowerCase(),
@@ -19,11 +28,20 @@ route.post(
   createUser,
 );
 
-route.post(
+router.post(
   '/login',
   body('email').trim().notEmpty().isEmail().escape().toLowerCase(),
   body('password').trim().notEmpty().isStrongPassword().escape(),
   login,
 );
 
-module.exports = route;
+// protected route
+router
+  .route('/me')
+  .get(getUser)
+  .put(
+    body('name').trim().notEmpty().isLength({ min: 3 }).escape().toLowerCase(),
+    updateUser,
+  );
+
+module.exports = router;

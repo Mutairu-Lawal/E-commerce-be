@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const checkAuth = async (req, res, next) => {
+const isAuthenticated = async (req, res, next) => {
   try {
     const auth = req.headers.authorization;
 
@@ -28,4 +28,18 @@ const checkAuth = async (req, res, next) => {
   }
 };
 
-module.exports = checkAuth;
+const isAuthorized = async (req, res, next) => {
+  try {
+    const { role } = req.user;
+
+    if (role != 'admin') {
+      throw new Error();
+    }
+
+    next();
+  } catch (error) {
+    return res.status(403).json({ Status: false, Message: 'forbidden' });
+  }
+};
+
+module.exports = { isAuthenticated, isAuthorized };

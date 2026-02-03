@@ -49,7 +49,7 @@ const login = async (req, res) => {
     const { password, email } = req.body;
 
     // find user data
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('-hash_password').lean();
 
     // if no user was found
     if (!user) {
@@ -63,9 +63,13 @@ const login = async (req, res) => {
       throw new Error();
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '1h',
+      },
+    );
 
     // Registration logic here
     res.status(200).json({ Status: true, token });
@@ -77,7 +81,9 @@ const login = async (req, res) => {
 const getUser = async (req, res) => {
   try {
     const { id } = req.user;
-    const { name, email, role } = await User.findById(id);
+    const { name, email, role } = await User.findById(id)
+      .select('-hash_password')
+      .lean();
 
     res.status(200).json({ name, email, role });
   } catch (error) {

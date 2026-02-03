@@ -7,12 +7,12 @@ const {
   getUser,
   updateUser,
 } = require('../controllers/authController');
-const checkAuth = require('../middlewares/auth');
+const isAuthenticated = require('../middlewares/auth');
 
 router = express.Router(); // Sample authentication route
 
 // protected route middleware
-router.use('/me', checkAuth);
+router.use('/me', isAuthenticated);
 
 router.post(
   '/register',

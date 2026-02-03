@@ -15,7 +15,7 @@ const createUser = async (req, res) => {
     const { password, name, role, email } = req.body;
 
     // find user data
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('-hash_password');
 
     if (user) {
       return res
@@ -49,7 +49,7 @@ const login = async (req, res) => {
     const { password, email } = req.body;
 
     // find user data
-    const user = await User.findOne({ email }).select('-hash_password').lean();
+    const user = await User.findOne({ email });
 
     // if no user was found
     if (!user) {
@@ -81,9 +81,9 @@ const login = async (req, res) => {
 const getUser = async (req, res) => {
   try {
     const { id } = req.user;
-    const { name, email, role } = await User.findById(id)
-      .select('-hash_password')
-      .lean();
+
+    const { name, email, role } =
+      await User.findById(id).select('-hash_password');
 
     res.status(200).json({ name, email, role });
   } catch (error) {

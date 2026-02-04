@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const User = require('../models/users');
+const RESPONSE = require('../utils/serverResponse');
 
 const createUser = async (req, res) => {
   try {
@@ -18,9 +19,7 @@ const createUser = async (req, res) => {
     const user = await User.findOne({ email }).select('-hash_password');
 
     if (user) {
-      return res
-        .status(400)
-        .json({ Status: false, Message: 'User with the email exist' });
+      throw new Error('User with the email exist');
     }
 
     // hash the password
@@ -30,11 +29,13 @@ const createUser = async (req, res) => {
     await User.create({ name, email, role, hash_password });
 
     // Registration logic here
-    res
-      .status(201)
-      .json({ Status: true, Message: 'User created successfully' });
+    RESPONSE(res, 201, 'User created successfully');
   } catch (error) {
-    res.status(400).json({ Status: false, Message: error });
+    if (error.message) {
+      RESPONSE(res, 400, error.message);
+    } else {
+      RESPONSE(res, 422, error);
+    }
   }
 };
 
@@ -71,10 +72,9 @@ const login = async (req, res) => {
       },
     );
 
-    // Registration logic here
-    res.status(200).json({ Status: true, token });
+    RESPONSE(res, 200, null, token);
   } catch (error) {
-    res.status(400).json({ Status: false, Message: 'Invalid Credentials' });
+    RESPONSE(res, 400, 'Invalid Credentials');
   }
 };
 
@@ -104,11 +104,9 @@ const updateUser = async (req, res) => {
 
     await User.findByIdAndUpdate(id, { name });
 
-    res
-      .status(200)
-      .json({ Status: true, Message: 'User updated successfully' });
+    RESPONSE(res, 200, 'User updated successfully');
   } catch (error) {
-    res.status(400).json({ Status: false, Message: error });
+    RESPONSE(res, 400, error);
   }
 };
 

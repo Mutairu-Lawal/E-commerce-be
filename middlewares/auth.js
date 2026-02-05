@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const RESPONSE = require('../utils/serverResponse');
 
 const is_Authenticated = async (req, res, next) => {
   try {
@@ -24,7 +25,7 @@ const is_Authenticated = async (req, res, next) => {
 
     next();
   } catch (error) {
-    return res.status(401).json({ Status: false, Message: 'Unauthorized' });
+    RESPONSE(res, 401);
   }
 };
 
@@ -32,13 +33,13 @@ const is_Authorized = async (req, res, next) => {
   try {
     const { role } = req.user;
 
-    if (role != 'admin') {
+    if (role !== 'admin') {
       throw new Error();
     }
 
     next();
   } catch (error) {
-    return res.status(403).json({ Status: false, Message: 'forbidden' });
+    RESPONSE(res, 403);
   }
 };
 

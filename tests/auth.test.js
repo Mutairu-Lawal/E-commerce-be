@@ -1,0 +1,207 @@
+// test/auth.test.js
+const request = require('supertest');
+const mongoose = require('mongoose');
+const app = require('../app'); // your Express app
+require('dotenv').config();
+
+// --------------------------------------------------------------------
+// Configuration -------------------------------------------------------
+// --------------------------------------------------------------------
+const TEST_DB_URL = 'mongodb://localhost:27017/test-db';
+const BASE_URL = '/api/v1/'; // visible to the whole file
+
+// --------------------------------------------------------------------
+// DB helpers ---------------------------------------------------------
+// --------------------------------------------------------------------
+/**
+ * Connect to the test DB.
+ */
+async function connectDB() {
+  try {
+    await mongoose.connect(TEST_DB_URL);
+    console.log('Connected to test DB');
+  } catch (err) {
+    console.error('DB connection error:', err);
+    process.exit(1);
+  }
+}
+
+/**
+ * Remove all data from collections that we will touch.
+ * Call this before each test (or once before all) to guarantee a clean slate.
+ */
+async function clearDatabase() {
+  const User = require('../models/users');
+  await User.deleteMany({});
+  console.log('DB cleared');
+}
+
+/**
+ * Close the Mongoose connection.
+ */
+async function closeDB() {
+  await mongoose.connection.close();
+  console.log('DB connection closed');
+}
+
+// --------------------------------------------------------------------
+// Test data -----------------------------------------------------------
+// --------------------------------------------------------------------
+const registerTestCases = [
+  {
+    // ── 1️⃣  Happy‑path admin ───────────────────────────────────────
+    data: {
+      name: 'SUPERUSER',
+      email: 'admin@example.com',
+      password: 'Admin@123',
+      role: 'admin',
+    },
+    expected: {
+      code: 201,
+      Status: true,
+      Message: 'User created successfully',
+    },
+  },
+  {
+    // ── 2️⃣  Happy‑path customer ─────────────────────────────────────
+    data: {
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      password: 'Password@123',
+      role: 'customer',
+    },
+    expected: {
+      code: 201,
+      Status: true,
+      Message: 'User created successfully',
+    },
+  },
+  {
+    // ── 3️⃣  Password too short / missing complexity ─────────────────
+    data: {
+      name: 'Bad Password',
+      email: 'bad.password@example.com',
+      password: 'Passw', // < 8 chars, no special char
+      // role is omitted because it is optional in the schema
+    },
+    expected: {
+      code: 422,
+      Status: false,
+      // Message can be an error object or array; we just check it exists
+      Message: undefined,
+    },
+  },
+  {
+    // ── 4️⃣  Happy‑path customer (no explicit role) ─────────────────
+    data: {
+      name: 'No Role',
+      email: 'no.role@example.com',
+      password: 'Password@123',
+    },
+    expected: {
+      code: 201,
+      Status: true,
+      Message: 'User created successfully',
+    },
+  },
+];
+
+const loginValidData = {
+  name: 'SUPERUSER',
+  email: 'admin@example.com',
+  password: 'Admin@123',
+  role: 'admin',
+};
+
+const loginInvalidData = {
+  // correctly formatted email that simply does not exist
+  email: 'nonexistent@example.com',
+  password: 'AnyPassword@123',
+};
+
+// --------------------------------------------------------------------
+// Tests ---------------------------------------------------------------
+// --------------------------------------------------------------------
+describe('Server health check', () => {
+  it('GET / → returns the welcome message', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('Welcome to the E-commerce Backend API');
+  });
+});
+
+describe('Auth routes', () => {
+  // Run before every test to guarantee a clean DB state
+  beforeEach(async () => {
+    await clearDatabase();
+  });
+
+  // --------------------------------------------------------------
+  // Register
+  // --------------------------------------------------------------
+  describe(`POST ${BASE_URL}auth/register`, () => {
+    // Loop over the test matrix – this is essentially the old postUserRegister helper
+    test.each(registerTestCases)('register %j', async ({ data, expected }) => {
+      const res = await request(app)
+        .post(`${BASE_URL}auth/register`)
+        .send(data);
+
+      expect(res.status).toBe(expected.code);
+      expect(res.body.Status).toBe(expected.Status);
+      if (expected.Message !== undefined) {
+        // `Message` may be a string or an array – handle both
+        if (Array.isArray(expected.Message)) {
+          expect(Array.isArray(res.body.Message)).toBe(true);
+        } else {
+          expect(res.body.Message).toBe(expected.Message);
+        }
+      }
+    });
+
+    it('should return 422 when the request body is empty', async () => {
+      const res = await request(app).post(`${BASE_URL}auth/register`).send({});
+      expect(res.status).toBe(422);
+      expect(res.body.Status).toBe(false);
+    });
+  });
+
+  // --------------------------------------------------------------
+  // Login
+  // --------------------------------------------------------------
+  describe(`POST ${BASE_URL}auth/login`, () => {
+    it('should reject invalid credentials', async () => {
+      const res = await request(app)
+        .post(`${BASE_URL}auth/login`)
+        .send(loginInvalidData);
+
+      expect(res.status).toBe(400);
+      expect(res.body.Status).toBe(false);
+      expect(res.body.Message).toBe('Invalid Credentials');
+    });
+
+    it('should succeed with valid credentials and return a token', async () => {
+      await request(app).post(`${BASE_URL}auth/register`).send(loginValidData);
+
+      const res = await request(app).post(`${BASE_URL}auth/login`).send({
+        email: loginValidData.email,
+        password: loginValidData.password,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.Status).toBe(true);
+      expect(res.body).toHaveProperty('token');
+      expect(typeof res.body.token).toBe('string');
+    });
+  });
+});
+
+// --------------------------------------------------------------------
+// Global DB lifecycle -------------------------------------------------
+// --------------------------------------------------------------------
+beforeAll(async () => {
+  await connectDB();
+});
+
+afterAll(async () => {
+  await closeDB();
+});

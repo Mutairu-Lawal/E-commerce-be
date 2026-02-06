@@ -17,7 +17,7 @@ router.post(
   '/register',
   body('name').trim().notEmpty().isLength({ min: 3 }).escape().toLowerCase(),
   body('email').trim().notEmpty().isEmail().escape().toLowerCase(),
-  body('password').trim().notEmpty().isStrongPassword().escape(),
+  body('password').trim().notEmpty().isStrongPassword(),
   body('role')
     .trim()
     .default('customer')
@@ -30,7 +30,7 @@ router.post(
 router.post(
   '/login',
   body('email').trim().notEmpty().isEmail().escape().toLowerCase(),
-  body('password').trim().notEmpty().isStrongPassword().escape(),
+  body('password').trim().notEmpty().isStrongPassword(),
   login,
 );
 

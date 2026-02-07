@@ -15,20 +15,19 @@ const createUser = async (req, res) => {
 
     const { password, name, role, email } = req.body;
 
-    // find user data
+    // Find user data
     const user = await User.findOne({ email }).select('-hash_password');
 
     if (user) {
       throw new Error('User with the email exist');
     }
 
-    // hash the password
+    // Hash the password
     const hash_password = await bcrypt.hash(password, 10);
 
     // Store data in the database
     await User.create({ name, email, role, hash_password });
 
-    // Registration logic here
     RESPONSE(res, 201, 'User created successfully');
   } catch (error) {
     if (error.message) {
@@ -49,15 +48,15 @@ const login = async (req, res) => {
 
     const { password, email } = req.body;
 
-    // find user data
+    // Find user data
     const user = await User.findOne({ email });
 
-    // if no user was found
+    // If no user was found
     if (!user) {
       throw new Error();
     }
 
-    // compare password
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.hash_password);
 
     if (!isMatch) {
@@ -85,9 +84,9 @@ const getUser = async (req, res) => {
     const { name, email, role } =
       await User.findById(id).select('-hash_password');
 
-    res.status(200).json({ name, email, role });
+    RESPONSE(res, 200, null, null, { name, email, role });
   } catch (error) {
-    res.status(404).json({ Status: false, Message: `User doesn't exist` });
+    RESPONSE(res, 404, "User doesn't exist");
   }
 };
 
@@ -110,4 +109,9 @@ const updateUser = async (req, res) => {
   }
 };
 
-module.exports = { createUser, login, getUser, updateUser };
+module.exports = {
+  createUser,
+  login,
+  getUser,
+  updateUser,
+};

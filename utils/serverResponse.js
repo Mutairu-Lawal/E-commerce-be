@@ -9,7 +9,13 @@ const STATUS_CODE = {
   500: 'Internal server Error',
 };
 
-const RESPONSE = async (res, res_code, Message = null, token = null) => {
+const RESPONSE = async (
+  res,
+  res_code,
+  Message = null,
+  token = null,
+  data = null,
+) => {
   switch (Message) {
     case null:
       Message = STATUS_CODE[res_code];
@@ -19,6 +25,8 @@ const RESPONSE = async (res, res_code, Message = null, token = null) => {
   }
   if (token) {
     res.status(res_code).json({ Status: true, token });
+  } else if (data) {
+    res.status(res_code).json({ Status: true, data });
   } else {
     res
       .status(res_code)

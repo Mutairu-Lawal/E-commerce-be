@@ -1,4 +1,4 @@
-const STATUS_CODE = {
+const STATUS_MESSAGES = {
   200: 'OK',
   201: 'Created',
   204: 'Deleted',
@@ -6,36 +6,34 @@ const STATUS_CODE = {
   401: 'Unauthorized',
   403: 'Forbidden',
   404: 'Not Found',
+  422: 'Unprocessable Entity',
   500: 'Internal Server Error',
 };
 
-const RESPONSE = async (
+const sendResponse = ({
   res,
-  resCode,
+  statusCode,
   message = null,
+  data = null,
   token = null,
-  data = null
-) => {
-  const finalMessage = message ?? STATUS_CODE[resCode];
+}) => {
+  const response = {
+    success: statusCode < 400,
+    message: message ?? STATUS_MESSAGES[statusCode],
+  };
 
-  if (token) {
-    return res.status(resCode).json({
-      status: true,
-      token,
-    });
+  if (data !== null) {
+    response.data = data;
   }
 
-  if (data) {
-    return res.status(resCode).json({
-      status: true,
-      data,
-    });
+  if (token !== null) {
+    response.token = token;
   }
 
-  return res.status(resCode).json({
-    status: resCode < 400,
-    message: finalMessage,
-  });
+  return res.status(statusCode).json(response);
 };
 
-module.exports = RESPONSE;
+module.exports = {
+  sendResponse,
+  STATUS_MESSAGES,
+};

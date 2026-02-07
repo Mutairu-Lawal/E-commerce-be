@@ -1,13 +1,13 @@
 const User = require('../models/users');
-const RESPONSE = require('../utils/serverResponse');
+const { sendResponse } = require('../utils/serverResponse');
 
 const getUsers = async (req, res) => {
   try {
     const users = await User.find().select('-hash_password').limit(100);
-    RESPONSE(res, 200, users);
+    sendResponse({ res, statusCode: 200, data: users });
   } catch (error) {
     console.error(error);
-    RESPONSE(res, 400);
+    sendResponse({ res, statusCode: 400 });
   }
 };
 
@@ -21,10 +21,10 @@ const getUserByID = async (req, res) => {
       throw new Error();
     }
 
-    RESPONSE(res, 200, user);
+    sendResponse({ res, statusCode: 200, data: user });
   } catch (error) {
     console.error(error);
-    RESPONSE(res, 404);
+    sendResponse({ res, statusCode: 404 });
   }
 };
 
@@ -33,9 +33,9 @@ const deleteUser = async (req, res) => {
     const { id } = req.params;
     await User.findByIdAndDelete(id);
 
-    RESPONSE(res, 204);
+    sendResponse({ res, statusCode: 204 });
   } catch (error) {
-    RESPONSE(res, 404, error);
+    sendResponse({ res, statusCode: 404, message: error.message || error });
   }
 };
 

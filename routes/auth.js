@@ -9,7 +9,7 @@ const {
 } = require('../controllers/authController');
 const { is_Authenticated } = require('../middlewares/auth');
 
-router = express.Router(); // Sample authentication route
+const router = express.Router(); // Sample authentication route
 
 router.use('/me', is_Authenticated);
 
@@ -24,14 +24,14 @@ router.post(
     .escape()
     .toLowerCase()
     .isIn(['customer', 'admin']),
-  createUser,
+  createUser
 );
 
 router.post(
   '/login',
   body('email').trim().notEmpty().isEmail().escape().toLowerCase(),
   body('password').trim().notEmpty().isStrongPassword().escape(),
-  login,
+  login
 );
 
 // protected route
@@ -40,7 +40,7 @@ router
   .get(getUser)
   .put(
     body('name').trim().notEmpty().isLength({ min: 3 }).escape().toLowerCase(),
-    updateUser,
+    updateUser
   );
 
 module.exports = router;

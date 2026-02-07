@@ -1,37 +1,41 @@
 const STATUS_CODE = {
-  200: 'ok',
-  201: 'created',
+  200: 'OK',
+  201: 'Created',
   204: 'Deleted',
   400: 'Bad Request',
-  401: 'UnAuthorized',
+  401: 'Unauthorized',
   403: 'Forbidden',
   404: 'Not Found',
-  500: 'Internal server Error',
+  500: 'Internal Server Error',
 };
 
 const RESPONSE = async (
   res,
-  res_code,
-  Message = null,
+  resCode,
+  message = null,
   token = null,
-  data = null,
+  data = null
 ) => {
-  switch (Message) {
-    case null:
-      Message = STATUS_CODE[res_code];
-      break;
-    default:
-      Message = Message;
-  }
+  const finalMessage = message ?? STATUS_CODE[resCode];
+
   if (token) {
-    res.status(res_code).json({ Status: true, token });
-  } else if (data) {
-    res.status(res_code).json({ Status: true, data });
-  } else {
-    res
-      .status(res_code)
-      .json({ Status: res_code < 400 ? true : false, Message });
+    return res.status(resCode).json({
+      status: true,
+      token,
+    });
   }
+
+  if (data) {
+    return res.status(resCode).json({
+      status: true,
+      data,
+    });
+  }
+
+  return res.status(resCode).json({
+    status: resCode < 400,
+    message: finalMessage,
+  });
 };
 
 module.exports = RESPONSE;

@@ -6,6 +6,7 @@ const getUsers = async (req, res) => {
     const users = await User.find().select('-hash_password').limit(100);
     RESPONSE(res, 200, users);
   } catch (error) {
+    console.error(error);
     RESPONSE(res, 400);
   }
 };
@@ -22,6 +23,7 @@ const getUserByID = async (req, res) => {
 
     RESPONSE(res, 200, user);
   } catch (error) {
+    console.error(error);
     RESPONSE(res, 404);
   }
 };

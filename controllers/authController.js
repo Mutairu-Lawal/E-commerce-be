@@ -68,11 +68,12 @@ const login = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: '1h',
-      },
+      }
     );
 
     RESPONSE(res, 200, null, token);
   } catch (error) {
+    console.error(error);
     RESPONSE(res, 400, 'Invalid Credentials');
   }
 };
@@ -86,6 +87,7 @@ const getUser = async (req, res) => {
 
     RESPONSE(res, 200, null, null, { name, email, role });
   } catch (error) {
+    console.error(error);
     RESPONSE(res, 404, "User doesn't exist");
   }
 };

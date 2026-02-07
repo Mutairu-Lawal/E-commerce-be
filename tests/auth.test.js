@@ -5,13 +5,13 @@ const app = require('../app'); // your Express app
 require('dotenv').config();
 
 // --------------------------------------------------------------------
-// Configuration -------------------------------------------------------
+// Configuration
 // --------------------------------------------------------------------
 const TEST_DB_URL = 'mongodb://localhost:27017/test-db';
-const BASE_URL = '/api/v1/'; // visible to the whole file
+const BASE_URL = '/api/v1/';
 
 // --------------------------------------------------------------------
-// DB helpers ---------------------------------------------------------
+// DB helpers
 // --------------------------------------------------------------------
 /**
  * Connect to the test DB.
@@ -28,7 +28,6 @@ async function connectDB() {
 
 /**
  * Remove all data from collections that we will touch.
- * Call this before each test (or once before all) to guarantee a clean slate.
  */
 async function clearDatabase() {
   const User = require('../models/users');
@@ -45,11 +44,11 @@ async function closeDB() {
 }
 
 // --------------------------------------------------------------------
-// Test data -----------------------------------------------------------
+// Test data
 // --------------------------------------------------------------------
 const registerTestCases = [
   {
-    // ── 1️⃣  Happy‑path admin ───────────────────────────────────────
+    // 1️⃣ Happy-path admin
     data: {
       name: 'SUPERUSER',
       email: 'admin@example.com',
@@ -63,7 +62,7 @@ const registerTestCases = [
     },
   },
   {
-    // ── 2️⃣  Happy‑path customer ─────────────────────────────────────
+    // 2️⃣ Happy-path customer
     data: {
       name: 'John Doe',
       email: 'john.doe@example.com',
@@ -77,22 +76,20 @@ const registerTestCases = [
     },
   },
   {
-    // ── 3️⃣  Password too short / missing complexity ─────────────────
+    // 3️⃣ Password too short / missing complexity
     data: {
       name: 'Bad Password',
       email: 'bad.password@example.com',
-      password: 'Passw', // < 8 chars, no special char
-      // role is omitted because it is optional in the schema
+      password: 'Passw',
     },
     expected: {
       code: 422,
       Status: false,
-      // Message can be an error object or array; we just check it exists
       Message: undefined,
     },
   },
   {
-    // ── 4️⃣  Happy‑path customer (no explicit role) ─────────────────
+    // 4️⃣ Happy-path customer (no explicit role)
     data: {
       name: 'No Role',
       email: 'no.role@example.com',
@@ -114,13 +111,12 @@ const loginValidData = {
 };
 
 const loginInvalidData = {
-  // correctly formatted email that simply does not exist
   email: 'nonexistent@example.com',
   password: 'AnyPassword@123',
 };
 
 // --------------------------------------------------------------------
-// Tests ---------------------------------------------------------------
+// Tests
 // --------------------------------------------------------------------
 describe('Server health check', () => {
   it('GET / → returns the welcome message', async () => {
@@ -131,16 +127,12 @@ describe('Server health check', () => {
 });
 
 describe('Auth routes', () => {
-  // Run before every test to guarantee a clean DB state
-  beforeEach(async () => {
-    await clearDatabase();
-  });
+  clearDatabase();
 
   // --------------------------------------------------------------
   // Register
   // --------------------------------------------------------------
   describe(`POST ${BASE_URL}auth/register`, () => {
-    // Loop over the test matrix – this is essentially the old postUserRegister helper
     test.each(registerTestCases)('register %j', async ({ data, expected }) => {
       const res = await request(app)
         .post(`${BASE_URL}auth/register`)
@@ -148,8 +140,8 @@ describe('Auth routes', () => {
 
       expect(res.status).toBe(expected.code);
       expect(res.body.Status).toBe(expected.Status);
+
       if (expected.Message !== undefined) {
-        // `Message` may be a string or an array – handle both
         if (Array.isArray(expected.Message)) {
           expect(Array.isArray(res.body.Message)).toBe(true);
         } else {
@@ -160,6 +152,7 @@ describe('Auth routes', () => {
 
     it('should return 422 when the request body is empty', async () => {
       const res = await request(app).post(`${BASE_URL}auth/register`).send({});
+
       expect(res.status).toBe(422);
       expect(res.body.Status).toBe(false);
     });
@@ -193,10 +186,54 @@ describe('Auth routes', () => {
       expect(typeof res.body.token).toBe('string');
     });
   });
+
+  // --------------------------------------------------------------
+  // Protected route (GET /me)
+  // --------------------------------------------------------------
+  describe(`GET ${BASE_URL}auth/me`, () => {
+    let token;
+
+    beforeAll(async () => {
+      await request(app).post(`${BASE_URL}auth/register`).send(loginValidData);
+
+      const res = await request(app).post(`${BASE_URL}auth/login`).send({
+        email: loginValidData.email,
+        password: loginValidData.password,
+      });
+
+      token = res.body.token;
+    });
+
+    it('should reject requests without a token', async () => {
+      const res = await request(app).get(`${BASE_URL}auth/me`);
+      expect(res.status).toBe(401);
+      expect(res.body.Status).toBe(false);
+    });
+
+    it('should reject requests with an invalid token', async () => {
+      const res = await request(app)
+        .get(`${BASE_URL}auth/me`)
+        .set('Authorization', 'Bearer invalidtoken');
+
+      expect(res.status).toBe(401);
+      expect(res.body.Status).toBe(false);
+    });
+
+    it('should return user info with a valid token', async () => {
+      const res = await request(app)
+        .get(`${BASE_URL}auth/me`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.Status).toBe(true);
+      expect(res.body).toHaveProperty('data');
+      expect(res.body.data).toHaveProperty('email', loginValidData.email);
+    });
+  });
 });
 
 // --------------------------------------------------------------------
-// Global DB lifecycle -------------------------------------------------
+// Global DB lifecycle
 // --------------------------------------------------------------------
 beforeAll(async () => {
   await connectDB();

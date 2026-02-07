@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const RESPONSE = require('../utils/serverResponse');
+const { sendResponse } = require('../utils/serverResponse');
 
 const is_Authenticated = async (req, res, next) => {
   try {
@@ -26,7 +26,7 @@ const is_Authenticated = async (req, res, next) => {
     next();
   } catch (error) {
     console.error(error);
-    RESPONSE(res, 401);
+    sendResponse({ res, statusCode: 401 });
   }
 };
 
@@ -41,7 +41,7 @@ const is_Authorized = async (req, res, next) => {
     next();
   } catch (error) {
     console.error(error);
-    RESPONSE(res, 403);
+    sendResponse({ res, statusCode: 403 });
   }
 };
 

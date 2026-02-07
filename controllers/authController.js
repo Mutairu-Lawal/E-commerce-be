@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const User = require('../models/users');
-const RESPONSE = require('../utils/serverResponse');
+const { sendResponse } = require('../utils/serverResponse');
 
 const createUser = async (req, res) => {
   try {
@@ -28,12 +28,24 @@ const createUser = async (req, res) => {
     // Store data in the database
     await User.create({ name, email, role, hash_password });
 
-    RESPONSE(res, 201, 'User created successfully');
+    sendResponse({
+      res,
+      statusCode: 201,
+      message: 'User created successfully',
+    });
   } catch (error) {
     if (error.message) {
-      RESPONSE(res, 400, error.message);
+      sendResponse({
+        res,
+        statusCode: 400,
+        message: error.message,
+      });
     } else {
-      RESPONSE(res, 422, error);
+      sendResponse({
+        res,
+        statusCode: 422,
+        data: error.array(),
+      });
     }
   }
 };
@@ -71,10 +83,10 @@ const login = async (req, res) => {
       }
     );
 
-    RESPONSE(res, 200, null, token);
+    sendResponse({ res, statusCode: 200, token });
   } catch (error) {
     console.error(error);
-    RESPONSE(res, 400, 'Invalid Credentials');
+    sendResponse({ res, statusCode: 400, message: 'Invalid Credentials' });
   }
 };
 
@@ -85,10 +97,10 @@ const getUser = async (req, res) => {
     const { name, email, role } =
       await User.findById(id).select('-hash_password');
 
-    RESPONSE(res, 200, null, null, { name, email, role });
+    sendResponse({ res, statusCode: 200, data: { name, email, role } });
   } catch (error) {
     console.error(error);
-    RESPONSE(res, 404, "User doesn't exist");
+    sendResponse({ res, statusCode: 404, message: "User doesn't exist" });
   }
 };
 
@@ -105,9 +117,13 @@ const updateUser = async (req, res) => {
 
     await User.findByIdAndUpdate(id, { name });
 
-    RESPONSE(res, 200, 'User updated successfully');
+    sendResponse({
+      res,
+      statusCode: 200,
+      message: 'User updated successfully',
+    });
   } catch (error) {
-    RESPONSE(res, 400, error);
+    sendResponse({ res, statusCode: 400, message: error.message || error });
   }
 };
 
